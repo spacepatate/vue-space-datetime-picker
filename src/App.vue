@@ -1,17 +1,16 @@
 <template>
   <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
+    <SpaceDatetimePicker></SpaceDateTimePicker>
   </div>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue';
+import SpaceDatetimePicker from '@/components/SpaceDatetimePicker.vue';
 
 export default {
   name: 'App',
   components: {
-    HelloWorld,
+    SpaceDatetimePicker,
   },
 };
 </script>

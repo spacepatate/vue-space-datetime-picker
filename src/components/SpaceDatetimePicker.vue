@@ -1,0 +1,400 @@
+<template>
+  <div class="space-datetime-picker">
+    <div class="custom-display" ref="customDisplay">
+      <slot></slot>
+    </div>
+    <input type="text"
+      v-if="!hasDefaultSlot"
+      v-model="label"
+      @click="openPopover"
+      @blur="onBlur"
+      :disabled="disabled"
+      ref="spaceDatetimePickerInput"
+      class="sapce-datetime-picker-input space-input" />
+    <div class="space-datetime-popover"
+      ref="spaceDatetimePopover"
+      :style="popoverStyle"
+      v-show="displayPopover">
+      <SpaceDatePicker v-if="mode === modeEnum.DayPick"
+        v-model="datetime"
+        :showTime="showTime"
+        :showHome="showHome"
+        :weekday="weekday"
+        :locale="locale"
+        :disabled="disabled"
+        :startingDay="startingDay"
+        @modeChange="onModeChange"
+        @select="onSelect"
+        @change="onChange"></SpaceDatePicker>
+      <SpaceMonthPicker
+        v-else-if="mode === modeEnum.MonthPick"
+        v-model="datetime"
+        :locale="locale"
+        :disabled="disabled"
+        :month="month"
+        @change="(datetime) => onChange(datetime, modeEnum.DayPick)">
+      </SpaceMonthPicker>
+      <SpaceYearPicker v-else-if="mode === modeEnum.YearPick"
+        :disabled="disabled"
+        @change="(datetime) => onChange(datetime, modeEnum.DayPick)"
+        v-model="datetime"></SpaceYearPicker>
+    </div>
+  </div>
+</template>
+<script>
+
+import ModeEnum from './ModeEnum';
+
+import SpaceDatePicker from './SpaceDatePicker.vue';
+import SpaceMonthPicker from './SpaceMonthPicker.vue';
+import SpaceYearPicker from './SpaceYearPicker.vue';
+
+// parse datetime to requested format
+const parseFuncs = [
+  {
+    key: 'YYYY',
+    handler: (datetime, str) => {
+      const year = datetime.getFullYear();
+      return str.replace('YYYY', year.toString());
+    },
+  },
+  {
+    key: 'MM',
+    handler: (datetime, str) => {
+      // Need to increase month value by 1
+      const month = datetime.getMonth() + 1;
+      const tmp = month < 10 ? `0${month}` : month;
+      return str.replace('MM', tmp.toString());
+    },
+  },
+  {
+    key: 'DD',
+    handler: (datetime, str) => {
+      const day = datetime.getDate();
+      const tmp = day < 10 ? `0${day}` : day;
+      return str.replace('DD', tmp.toString());
+    },
+  },
+  {
+    key: 'HH',
+    handler: (datetime, str) => {
+      const hour = datetime.getHours();
+      const tmp = hour < 10 ? `0${hour}` : hour;
+      return str.replace('HH', tmp.toString());
+    },
+  },
+  {
+    key: 'mm',
+    handler: (datetime, str) => {
+      const minutes = datetime.getMinutes();
+      const tmp = minutes < 10 ? `0${minutes}` : minutes;
+      return str.replace('mm', tmp.toString());
+    },
+  },
+  {
+    key: 'ss',
+    handler: (datetime, str) => {
+      const seconds = datetime.getSeconds();
+      const tmp = seconds < 10 ? `0${seconds}` : seconds;
+      return str.replace('ss', tmp.toString());
+    },
+  },
+];
+
+// reverse requested format to datetime
+const reverseFuncs = [
+  {
+    key: 'YYYY',
+    handler: (label, format, datetime) => {
+      const index = format.indexOf('YYYY');
+      const year = label.substring(index, index + 4);
+      return datetime.setYear(Number.parseInt(year, 10));
+    },
+  },
+  {
+    key: 'MM',
+    handler: (label, format, datetime) => {
+      const index = format.indexOf('MM');
+      const month = label.substring(index, index + 2);
+      return datetime.setMonth(Number.parseInt(month, 10) - 1);
+    },
+  },
+  {
+    key: 'DD',
+    handler: (label, format, datetime) => {
+      const index = format.indexOf('DD');
+      const date = label.substring(index, index + 2);
+      return datetime.setDate(Number.parseInt(date, 10));
+    },
+  },
+  {
+    key: 'HH',
+    handler: (label, format, datetime) => {
+      const index = format.indexOf('HH');
+      const hours = label.substring(index, index + 2);
+      return datetime.setHours(Number.parseInt(hours, 10));
+    },
+  },
+  {
+    key: 'mm',
+    handler: (label, format, datetime) => {
+      const index = format.indexOf('mm');
+      const minutes = label.substring(index, index + 2);
+      return datetime.setMinutes(Number.parseInt(minutes, 10));
+    },
+  },
+  {
+    key: 'ss',
+    handler: (label, format, datetime) => {
+      const index = format.indexOf('ss');
+      const seconds = label.substring(index, index + 2);
+      return datetime.setSeconds(Number.parseInt(seconds, 10));
+    },
+  },
+];
+
+function isValidDate(date) {
+  if (Object.prototype.toString.call(date) === '[object Date]') {
+    if (Number.isNaN(date.getTime())) {
+      return false;
+    }
+    return true;
+  }
+  return false;
+}
+
+export default {
+  components: {
+    SpaceDatePicker,
+    SpaceMonthPicker,
+    SpaceYearPicker,
+  },
+
+  data() {
+    return {
+      datetime: null,
+      mode: ModeEnum.DayPick,
+      modeEnum: ModeEnum,
+      label: null,
+      displayPopover: false,
+      popoverStyle: null,
+    };
+  },
+
+  props: {
+    value: {
+      type: Date,
+      required: false,
+      default: null,
+    },
+
+    format: {
+      type: String,
+      required: false,
+      default: 'YYYY-MM-DD',
+    },
+
+    locale: {
+      type: String,
+      required: false,
+      default: undefined,
+    },
+
+    showTime: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
+
+    hour12: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
+
+    weekday: {
+      type: String,
+      required: false,
+      default: 'narrow', // long | short | narrow
+    },
+
+    year: {
+      type: String,
+      required: false,
+      default: 'numeric', // numeric (ex: 2012) | 2-digit (ex: 12)
+    },
+
+    month: {
+      type: String,
+      required: false,
+      default: 'short', // numeric | 2-digit | long | short | narrow
+    },
+
+    day: {
+      type: String,
+      required: false,
+      default: '2-digit', // numeric (ex: 1) | 2-digit (ex: 01)
+    },
+
+    hour: {
+      type: String,
+      required: false,
+      default: '2-digit', // numeric | 2-digit
+    },
+
+    minute: {
+      type: String,
+      required: false,
+      default: '2-digit', // numeric | 2-digit
+    },
+
+    second: {
+      type: String,
+      required: false,
+      default: '2-digit', // numeric | 2-digit
+    },
+
+    showHome: {
+      type: Boolean,
+      required: false,
+      default: true,
+    },
+
+    disabled: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
+
+    // First date in week days, for exemple Monday is the default first day of week,
+    // but can be Sunday for some countries
+    startingDay: {
+      type: Number,
+      required: false,
+      default: 0,
+      validator: (value) => value >= 0 && value < 7,
+    },
+  },
+
+  beforeMount() {
+    if (this.value && isValidDate(this.value)) {
+      this.datetime = this.value;
+    } else {
+      this.datetime = new Date();
+    }
+  },
+
+  watch: {
+    datetime() {
+      let tmp = this.format;
+      for (let i = 0; i < parseFuncs.length; i += 1) {
+        const parseFunc = parseFuncs[i];
+        if (this.format.includes(parseFunc.key)) {
+          tmp = parseFunc.handler(this.datetime, tmp);
+        }
+      }
+      this.label = tmp;
+    },
+  },
+
+  computed: {
+    hasDefaultSlot() {
+      return this.$slots.default;
+    },
+  },
+
+  methods: {
+    onChange(datetime, mode = this.mode) {
+      this.datetime = datetime;
+      this.mode = mode;
+    },
+
+    onSelect(datetime) {
+      this.datetime = datetime;
+      this.displayPopover = false;
+      if (!this.disabled) {
+        this.$emit('change', { datetime: this.datetime, label: this.label });
+      }
+    },
+
+    onModeChange(mode) {
+      this.mode = mode;
+    },
+
+    onBlur() {
+      let datetime = new Date();
+      for (let i = 0; i < reverseFuncs.length; i += 1) {
+        const parseFunc = reverseFuncs[i];
+        if (this.format.includes(parseFunc.key)) {
+          const tmp = parseFunc.handler(this.label, this.format, datetime);
+          datetime = new Date(tmp);
+        }
+      }
+      if (isValidDate(datetime) && !this.disabled) {
+        this.datetime = datetime;
+        this.$emit('change', { datetime: this.datetime, label: this.label });
+      }
+    },
+
+    onClickHandler(e) {
+      if (!this.$refs.spaceDatetimePopover) {
+        return;
+      }
+      const viewportOffset = this.$refs.spaceDatetimePopover.getBoundingClientRect();
+      const zoneX = viewportOffset.x + viewportOffset.width;
+      const zoneY = viewportOffset.y + viewportOffset.height;
+      if (e.clientX < viewportOffset.x
+          || e.clientX > zoneX
+          || e.clientY < viewportOffset.y
+          || e.clientY > zoneY) {
+        this.displayPopover = false;
+        document.removeEventListener('click', this.onClickHandler);
+        if (isValidDate(this.datetime) && !this.disabled) {
+          this.$emit('change', { datetime: this.datetime, label: this.label });
+        }
+        this.mode = ModeEnum.DayPick;
+      }
+    },
+
+    openPopover(e) {
+      this.displayPopover = true;
+      const el = this.$slots.default
+        ? this.$refs.customDisplay : this.$refs.spaceDatetimePickerInput;
+      if (!el) {
+        return;
+      }
+      const viewportOffset = el.getBoundingClientRect();
+      const popoverPositionLeft = viewportOffset.left;
+      const popoverPositionTop = viewportOffset.top + viewportOffset.height;
+      this.popoverStyle = {
+        position: 'absolute',
+        left: `${popoverPositionLeft}px`,
+        top: `${popoverPositionTop}px`,
+      };
+      e.stopPropagation();
+      e.preventDefault();
+      document.addEventListener('click', this.onClickHandler);
+    },
+  },
+};
+</script>
+<style lang="scss">
+  input.space-input {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    max-width: 300px;
+    height: 32px;
+    padding: 4px 11px;
+    color: rgba(0, 0, 0, 0.65);
+    font-size: 14px;
+    line-height: 1.5;
+    background-color: #fff;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+  }
+</style>
