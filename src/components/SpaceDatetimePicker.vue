@@ -278,7 +278,7 @@ export default {
     startingDay: {
       type: Number,
       required: false,
-      default: 0,
+      default: 1,
       validator: (value) => value >= 0 && value < 7,
     },
   },
