@@ -71,7 +71,8 @@ export default {
   props: {
     value: {
       type: Date,
-      required: true,
+      required: false,
+      default: null,
     },
 
     locale: {
@@ -83,8 +84,8 @@ export default {
     startingDay: {
       type: Number,
       required: false,
-      default: 1,
-      validator: (value) => value >= 1 && value <= 7,
+      default: 0,
+      validator: (value) => value >= 0 && value <= 7,
     },
 
     showTime: {
@@ -140,7 +141,12 @@ export default {
   },
 
   beforeMount() {
-    this.datetime = this.value;
+    if (this.value) {
+      this.datetime = this.value;
+    } else {
+      this.datetime = new Date();
+    }
+
     this.init();
     this.initWeekdDays();
   },
@@ -169,8 +175,10 @@ export default {
   },
 
   watch: {
-    value() {
-      this.datetime = this.value;
+    value(newValue) {
+      if (newValue) {
+        this.datetime = this.value;
+      }
     },
 
     datetime() {

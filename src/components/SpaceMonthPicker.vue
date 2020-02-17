@@ -36,7 +36,8 @@ export default {
   props: {
     value: {
       type: Date,
-      required: true,
+      required: false,
+      default: null,
     },
 
     locale: {
@@ -66,12 +67,18 @@ export default {
   },
 
   beforeMount() {
-    this.datetime = this.value;
+    if (this.value) {
+      this.datetime = this.value;
+    } else {
+      this.datetime = new Date();
+    }
   },
 
   watch: {
     value() {
-      this.datetime = this.value;
+      if (this.value) {
+        this.datetime = this.value;
+      }
     },
   },
 

@@ -279,8 +279,6 @@ export default {
   beforeMount() {
     if (this.value && isValidDate(this.value)) {
       this.datetime = this.value;
-    } else {
-      this.datetime = new Date();
     }
   },
 
@@ -313,7 +311,7 @@ export default {
       this.datetime = datetime;
       this.displayPopover = false;
       if (!this.disabled) {
-        this.$emit('change', { datetime: this.datetime, label: this.label });
+        this.$emit('input', this.datetime);
       }
     },
 
@@ -323,6 +321,10 @@ export default {
 
     onBlur() {
       let datetime = new Date();
+      if (!this.label) {
+        this.$emit('input', null);
+        return;
+      }
       for (let i = 0; i < reverseFuncs.length; i += 1) {
         const parseFunc = reverseFuncs[i];
         if (this.format.includes(parseFunc.key)) {
@@ -332,7 +334,7 @@ export default {
       }
       if (isValidDate(datetime) && !this.disabled) {
         this.datetime = datetime;
-        this.$emit('change', { datetime: this.datetime, label: this.label });
+        this.$emit('input', this.datetime);
       }
     },
 
@@ -350,7 +352,7 @@ export default {
         this.displayPopover = false;
         document.removeEventListener('click', this.onClickHandler);
         if (isValidDate(this.datetime) && !this.disabled) {
-          this.$emit('change', { datetime: this.datetime, label: this.label });
+          this.$emit('input', this.datetime);
         }
         this.mode = ModeEnum.DayPick;
       }
