@@ -6,6 +6,7 @@
     <input type="text"
       v-if="!hasDefaultSlot"
       v-model="label"
+      :placeholder="placeholder"
       @click="openPopover"
       @blur="onBlur"
       :disabled="disabled"
@@ -184,6 +185,12 @@ export default {
   props: {
     value: {
       type: Date,
+      required: false,
+      default: null,
+    },
+
+    placeholder: {
+      type: String,
       required: false,
       default: null,
     },
