@@ -32,6 +32,17 @@ Vue.extend({
 <space-datetime-picker v-model="date"></space-datetime-picker>
 ```
 
+![minimal](./cap1.png)
+
+#### With time
+![time select](./cap3.png)
+
+#### Select months
+![month select](./cap2.png)
+
+#### Select year
+![year select](./cap4.png)
+
 
 ### Parameters
 
