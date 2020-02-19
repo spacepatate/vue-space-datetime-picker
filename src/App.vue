@@ -1,16 +1,19 @@
 <template>
   <div id="app">
     <SpaceDatetimePicker></SpaceDateTimePicker>
+    <SpaceDaterangePicker></SpaceDaterangePicker>
   </div>
 </template>
 
 <script>
 import SpaceDatetimePicker from '@/components/SpaceDatetimePicker.vue';
+import SpaceDaterangePicker from '@/components/SpaceDaterangePicker.vue';
 
 export default {
   name: 'App',
   components: {
     SpaceDatetimePicker,
+    SpaceDaterangePicker,
   },
 };
 </script>
