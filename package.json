@@ -1,6 +1,6 @@
 {
   "name": "@spacepatate/vue-space-datetime-picker",
-  "version": "0.1.2",
+  "version": "0.1.5",
   "private": false,
   "scripts": {
     "serve": "vue-cli-service serve",
@@ -10,10 +10,6 @@
     "lint": "vue-cli-service lint",
     "build-bundle": "vue-cli-service build --target lib --name vue-space-datetime-picker ./src/components/SpaceDatetimePicker.vue"
   },
-  "dependencies": {
-    "core-js": "^3.6.4",
-    "vue": "^2.6.11"
-  },
   "files": [
     "dist/*",
     "src/*",
@@ -21,7 +17,21 @@
     "*.json",
     "*.js"
   ],
+  "keywords": [
+    "vuejs",
+    "vue",
+    "datetime",
+    "date",
+    "time",
+    "datetime-picker",
+    "timepicker",
+    "time-picker"
+  ],
   "main": "./dist/vue-space-datetime-picker.common.js",
+  "dependencies": {
+    "core-js": "^3.6.4",
+    "vue": "^2.6.11"
+  },
   "devDependencies": {
     "@vue/cli-plugin-babel": "^4.2.0",
     "@vue/cli-plugin-e2e-nightwatch": "^4.2.0",
