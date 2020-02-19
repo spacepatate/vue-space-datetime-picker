@@ -22,20 +22,15 @@
       <div class="weeks" v-for="(week, index) of calendar" :key="`week-${index}`">
         <div class="day"
           v-for="(day, index) of week"
-          @click="clickDay(day)"
+          @click="selectDate(day)"
+          @mouseover="onMouseoverDate(day)"
           :key="`day-${index}`"
           :class="{
-            'prev-month': (day.getMonth() < datetime.getMonth()
-                && day.getFullYear() === datetime.getFullYear())
-              || (day.getFullYear() < datetime.getFullYear()),
-            'next-month': day.getMonth() > datetime.getMonth()
-              && day.getFullYear() >= datetime.getFullYear(),
-            'current-day': day.getFullYear() === currentDatetime.getFullYear()
-                          && day.getMonth() === currentDatetime.getMonth()
-                          && day.getDate() === currentDatetime.getDate(),
-            'selected': day.getFullYear() === datetime.getFullYear()
-                          && day.getMonth() === datetime.getMonth()
-                          && day.getDate() === datetime.getDate(),
+            'prev-month': isPrevMonth(day),
+            'next-month': isNextMonth(day),
+            'current-day': isCurrentDate(day),
+            'selected': isSelectedDate(day),
+            'day-in-range': isDayInRange(day),
           }">
           <span>{{ formatedDayLabel(day) }}</span>
         </div>
@@ -70,6 +65,17 @@ export default {
   },
   props: {
     value: {
+      type: Date,
+      required: false,
+      default: null,
+    },
+
+    rangeDatetimes: {
+      type: Object,
+      required: false,
+    },
+
+    startingDate: {
       type: Date,
       required: false,
       default: null,
@@ -129,6 +135,12 @@ export default {
       required: false,
       default: false,
     },
+
+    mode: {
+      type: String,
+      required: false,
+      default: null,
+    },
   },
   data() {
     return {
@@ -137,18 +149,26 @@ export default {
       weekDays: [],
       datetime: null,
       weekDaysOrder: [],
+      currentOverDate: null,
     };
   },
 
   beforeMount() {
     if (this.value) {
       this.datetime = this.value;
+    } else if (this.startingDate) {
+      this.datetime = this.startingDate;
     } else {
       this.datetime = new Date();
     }
 
     this.init();
     this.initWeekdDays();
+    if (this.mode === 'date-range') {
+      this.$parent.$on('over-on-date', (datetime) => {
+        this.currentOverDate = datetime;
+      });
+    }
   },
 
   computed: {
@@ -192,6 +212,15 @@ export default {
     diffDatesInDays(date1, date2) {
       const timeDiff = date2.getTime() - date1.getTime();
       return timeDiff / (1000 * 3600 * 24);
+    },
+
+    onMouseoverDate(datetime) {
+      if (this.rangeDatetimes.startDatetime
+        && this.rangeDatetimes.endDatetime) {
+        return;
+      }
+      this.$parent.$emit('over-on-date', datetime);
+      this.currentOverDate = datetime;
     },
 
     initWeekdDays() {
@@ -305,14 +334,14 @@ export default {
       return (day.getDate() < 10) ? `0${day.getDate()}` : day.getDate();
     },
 
-    clickDay(day) {
+    selectDate(date) {
       if (this.disabled) {
         return;
       }
       if (this.showTime) {
-        this.$emit('change', day);
+        this.$emit('change', date);
       } else {
-        this.$emit('select', day);
+        this.$emit('select', date);
       }
     },
 
@@ -381,6 +410,65 @@ export default {
       }
       this.$emit('select', datetime);
     },
+
+    // Date in range
+    isDayInRange(date) {
+      if (this.mode !== 'date-range'
+        || (!this.rangeDatetimes.startDatetime && !this.rangeDatetimes.endDatetime)) {
+        return false;
+      }
+      // when only 1 date is defined
+      if ((this.rangeDatetimes.startDatetime && !this.rangeDatetimes.endDatetime)
+        || (!this.rangeDatetimes.startDatetime && this.rangeDatetimes.endDatetime)) {
+        console.log('start date: ', this.rangeDatetimes.startDatetime);
+        console.log('end date: ', this.rangeDatetimes.endDatetime);
+        const pivotDate = this.rangeDatetimes.startDatetime
+          ? this.rangeDatetimes.startDatetime : this.rangeDatetimes.endDatetime;
+        // if current date is between the pivot date and current overed date
+        if (date.getTime() < pivotDate.getTime()
+          && date.getTime() > this.currentOverDate.getTime()) {
+          return true;
+        }
+        if (date.getTime() > pivotDate.getTime()
+          && date.getTime() < this.currentOverDate.getTime()) {
+          return true;
+        }
+      }
+      if (date.getTime() > this.rangeDatetimes.startDatetime
+        && date.getTime() < this.rangeDatetimes.endDatetime) {
+        return true;
+      }
+      return false;
+    },
+
+    isPrevMonth(date) {
+      return (date.getMonth() < this.datetime.getMonth()
+        && date.getFullYear() === this.datetime.getFullYear())
+        || (date.getFullYear() < this.datetime.getFullYear());
+    },
+
+    isNextMonth(date) {
+      return date.getMonth() > this.datetime.getMonth()
+        && date.getFullYear() >= this.datetime.getFullYear();
+    },
+
+    isCurrentDate(date) {
+      return date.getFullYear() === this.currentDatetime.getFullYear()
+        && date.getMonth() === this.currentDatetime.getMonth()
+        && date.getDate() === this.currentDatetime.getDate();
+    },
+
+    isSelectedDate(date) {
+      if (this.mode === 'date-range') {
+        if (!this.rangeDatetimes.startDatetime
+          || !this.rangeDatetimes.endDatetime) {
+          return false;
+        }
+      }
+      return date.getFullYear() === this.datetime.getFullYear()
+        && date.getMonth() === this.datetime.getMonth()
+        && date.getDate() === this.datetime.getDate();
+    },
   },
 };
 </script>
@@ -405,8 +493,8 @@ export default {
   }
 
   .icon.home {
-    height: 8px;
-    width: 10px;
+    height: 6px;
+    width: 8px;
   }
   .icon.home:after,
   .icon.home:before,
@@ -416,17 +504,17 @@ export default {
   }
 
   .icon.home:after {
-    height: 2px;
-    left: 8px;
-    top: -8px;
+    height: 1px;
+    left: 6px;
+    top: -7px;
   }
 
   .icon.home:before {
-    border-bottom: 8px solid #bfdeff;
-    border-left: 8px solid transparent;
-    border-right: 8px solid transparent;
-    border-top: 12px solid transparent;
-    height: 0;
+    border-bottom: 7px solid #bfdeff;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 13px solid transparent;
+    height: 0px;
     left: -3px;
     top: -21px;
     width: 0;
@@ -455,6 +543,7 @@ export default {
     display: flex;
     flex-direction: column;
     width: 300px;
+    background: #fff;
     box-shadow: 1px 2px 6px 0px #bfbfbf;
 
     a.icon.home {
@@ -498,6 +587,10 @@ export default {
             border: 1px solid #a4d0ff;
           }
         }
+
+        &.day-in-range {
+          background: #ececec;
+        }
       }
     }
 
@@ -505,6 +598,7 @@ export default {
       display: inline-flex;
       justify-content: center;
       position: relative;
+      background: white;
       border-bottom: 1px solid #ececec;
       .current-month-year-label {
         display: inline-flex;
