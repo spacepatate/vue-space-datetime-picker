@@ -1,16 +1,16 @@
 <template>
   <div class="space-date-day-picker">
     <div class="header">
-      <a class="prev-year-btn" @click="selectPrevYear"></a>
-      <a class="prev-month-btn" @click="selectPrevMonth"></a>
+      <a class="prev-year-btn" @click="selectPrevYear" v-if="!hidePrevBtns"></a>
+      <a class="prev-month-btn" @click="selectPrevMonth" v-if="!hidePrevBtns"></a>
       <div class="current-month-year-label">
         <div @click="changeToMonthPicker" class="month-label">
           {{ currentMonthLabel }}</div>
         <div @click="changeToYearPicker" class="year-label">
           {{ datetime.getFullYear() }}</div>
       </div>
-      <a class="next-month-btn" @click="selectNextMonth"></a>
-      <a class="next-year-btn" @click="selectNextYear"></a>
+      <a class="next-month-btn" @click="selectNextMonth" v-if="!hideNextBtns"></a>
+      <a class="next-year-btn" @click="selectNextYear" v-if="!hideNextBtns"></a>
       <a v-if="showHome" class="icon home" @click="gotoCurrentDdate"></a>
     </div>
     <div class="week-days">
@@ -72,6 +72,12 @@ export default {
 
     rangeDatetimes: {
       type: Object,
+      required: false,
+    },
+
+    // only in range-picker mode
+    isFirstDatePicker: {
+      type: Boolean,
       required: false,
     },
 
@@ -150,6 +156,8 @@ export default {
       datetime: null,
       weekDaysOrder: [],
       currentOverDate: null,
+      hidePrevBtns: false,
+      hideNextBtns: false,
     };
   },
 
@@ -168,6 +176,8 @@ export default {
       this.$parent.$on('over-on-date', (datetime) => {
         this.currentOverDate = datetime;
       });
+      this.hideNextBtns = this.checkNextBtnsVisibility();
+      this.hidePrevBtns = this.checkPrevBtnsVisibility();
     }
   },
 
@@ -212,6 +222,28 @@ export default {
     diffDatesInDays(date1, date2) {
       const timeDiff = date2.getTime() - date1.getTime();
       return timeDiff / (1000 * 3600 * 24);
+    },
+
+    // Hide prev buttons if it's 2e calendar in range-picker
+    // and the prev month is the month showed in 1e calendar
+    checkPrevBtnsVisibility() {
+      if (!this.isFirstDatePicker) {
+        return true;
+      }
+      return false;
+    },
+
+    checkNextBtnsVisibility() {
+      if (this.isFirstDatePicker) {
+        console.log('here');
+        console.log(this.datetime.getMonth());
+        console.log(this.startingDate.getMonth());
+        if (this.datetime.getMonth() + 1 < this.startingDate.getMonth()) {
+          return false;
+        }
+        return true;
+      }
+      return false;
     },
 
     onMouseoverDate(datetime) {
@@ -348,6 +380,8 @@ export default {
     selectMonth(selectedMonth) {
       const tmp = this.datetime.setMonth(selectedMonth);
       this.datetime = new Date(tmp);
+      this.hidePrevBtns = this.checkPrevBtnsVisibility();
+      this.hideNextBtns = this.checkNextBtnsVisibility();
     },
 
     selectPrevMonth() {
@@ -420,8 +454,6 @@ export default {
       // when only 1 date is defined
       if ((this.rangeDatetimes.startDatetime && !this.rangeDatetimes.endDatetime)
         || (!this.rangeDatetimes.startDatetime && this.rangeDatetimes.endDatetime)) {
-        console.log('start date: ', this.rangeDatetimes.startDatetime);
-        console.log('end date: ', this.rangeDatetimes.endDatetime);
         const pivotDate = this.rangeDatetimes.startDatetime
           ? this.rangeDatetimes.startDatetime : this.rangeDatetimes.endDatetime;
         // if current date is between the pivot date and current overed date
@@ -589,7 +621,7 @@ export default {
         }
 
         &.day-in-range {
-          background: #ececec;
+          background: #bfdeff73;
         }
       }
     }

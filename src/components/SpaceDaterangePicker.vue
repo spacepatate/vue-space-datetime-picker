@@ -23,7 +23,7 @@
         <SpaceDatePicker v-if="startDatetimeMode === modeEnum.DayPick"
           v-model="rangeDatetimes.startDatetime"
           :showTime="showTime"
-          :showHome="showHome"
+          :showHome="false"
           :weekday="weekday"
           :locale="locale"
           :disabled="disabled"
@@ -31,6 +31,7 @@
           :startingDay="startingDay"
           :mode="'date-range'"
           :rangeDatetimes="rangeDatetimes"
+          :isFirstDatePicker="true"
           @modeChange="(mode) = startDatetimeMode = mode;"
           @select="onSelectStartDatetime"
           @change="onStartDatetimeChange"></SpaceDatePicker>
@@ -51,7 +52,7 @@
         <SpaceDatePicker v-if="endDatetimeMode === modeEnum.DayPick"
           v-model="rangeDatetimes.endDatetime"
           :showTime="showTime"
-          :showHome="showHome"
+          :showHome="false"
           :weekday="weekday"
           :locale="locale"
           :disabled="disabled"
@@ -59,6 +60,7 @@
           :mode="'date-range'"
           :startingDate="defaultRangeEndDate"
           :rangeDatetimes="rangeDatetimes"
+          :isFirstDatePicker="false"
           @modeChange="(mode) = endDatetimeMode = mode;"
           @select="onSelectEndDatetime"
           @change="onEndDatetimeChange"></SpaceDatePicker>
@@ -191,12 +193,6 @@ export default {
       type: String,
       required: false,
       default: '2-digit', // numeric | 2-digit
-    },
-
-    showHome: {
-      type: Boolean,
-      required: false,
-      default: true,
     },
 
     disabled: {
