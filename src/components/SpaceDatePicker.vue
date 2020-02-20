@@ -324,7 +324,7 @@ export default {
     selectPrevMonth() {
       const currentMonth = this.datetime.getMonth();
       if (currentMonth - 1 < 0) {
-        this.datetime = new Date(this.datetime.getFullYear() - 1,
+        this.datetime = new Date(this.datetime.getFullYear(),
           11,
           this.datetime.getDate(),
           this.datetime.getHours(),
@@ -337,7 +337,7 @@ export default {
     selectNextMonth() {
       const currentMonth = this.datetime.getMonth();
       if (currentMonth + 1 > 11) {
-        this.datetime = new Date(this.datetime.getFullYear() + 1,
+        this.datetime = new Date(this.datetime.getFullYear(),
           0,
           this.datetime.getDate(),
           this.datetime.getHours(),
