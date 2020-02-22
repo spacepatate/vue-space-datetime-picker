@@ -75,12 +75,6 @@ export default {
       required: false,
     },
 
-    // only in range-picker mode
-    isFirstDatePicker: {
-      type: Boolean,
-      required: false,
-    },
-
     startingDate: {
       type: Date,
       required: false,
@@ -147,6 +141,20 @@ export default {
       required: false,
       default: null,
     },
+
+    // only in range-picker mode
+    leftRangeDatePicker: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
+
+    // only in range-picker mode
+    rightRangeDatePicker: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
   },
   data() {
     return {
@@ -165,7 +173,7 @@ export default {
     if (this.value) {
       this.datetime = this.value;
     } else if (this.startingDate) {
-      this.datetime = this.startingDate;
+      this.datetime = new Date(this.startingDate);
     } else {
       this.datetime = new Date();
     }
@@ -176,8 +184,8 @@ export default {
       this.$parent.$on('over-on-date', (datetime) => {
         this.currentOverDate = datetime;
       });
-      this.hideNextBtns = this.checkNextBtnsVisibility();
-      this.hidePrevBtns = this.checkPrevBtnsVisibility();
+      this.checkNextBtnsVisibility();
+      this.checkPrevBtnsVisibility();
     }
   },
 
@@ -207,6 +215,27 @@ export default {
   watch: {
     value(newValue) {
       if (newValue) {
+        // if in range-mode,
+        // the start date and end date is in same calendar,
+        // and the dates are not in this calendar
+        // then skip
+        if (this.rightRangeDatePicker
+          && this.rangeDatetimes
+          && this.rangeDatetimes.startDatetime
+          && this.rangeDatetimes.endDatetime
+          && this.rangeDatetimes.endDatetime.getTime() === newValue.getTime()
+          && newValue.getMonth() !== this.datetime.getMonth()) {
+          return;
+        }
+
+        if (this.leftRangeDatePicker
+         && this.rangeDatetimes
+         && this.rangeDatetimes.startDatetime
+         && this.rangeDatetimes.startDatetime.getTime() === newValue.getTime()
+         && newValue.getMonth() !== this.datetime.getMonth()) {
+          return;
+        }
+
         this.datetime = this.value;
       }
     },
@@ -227,23 +256,43 @@ export default {
     // Hide prev buttons if it's 2e calendar in range-picker
     // and the prev month is the month showed in 1e calendar
     checkPrevBtnsVisibility() {
-      if (!this.isFirstDatePicker) {
-        return true;
+      if (this.rightRangeDatePicker) {
+        // Months between years.
+        let months = (this.startingDate.getFullYear() - this.datetime.getFullYear()) * 12;
+        // Months between... months.
+        months += this.datetime.getMonth() - this.startingDate.getMonth();
+        // Subtract one month if b's date is less that a's.
+        if (this.startingDate.getDate() < this.datetime.getDate()) {
+          months -= 1;
+        }
+        if (months > 0) {
+          this.hidePrevBtns = false;
+          return;
+        }
+        this.hidePrevBtns = true;
+        return;
       }
-      return false;
+      this.hidePrevBtns = false;
     },
 
     checkNextBtnsVisibility() {
-      if (this.isFirstDatePicker) {
-        console.log('here');
-        console.log(this.datetime.getMonth());
-        console.log(this.startingDate.getMonth());
-        if (this.datetime.getMonth() + 1 < this.startingDate.getMonth()) {
-          return false;
+      if (this.leftRangeDatePicker) {
+        // Months between years.
+        let months = (this.startingDate.getFullYear() - this.datetime.getFullYear()) * 12;
+        // Months between... months.
+        months += this.startingDate.getMonth() - this.datetime.getMonth();
+        // Subtract one month if b's date is less that a's.
+        if (this.datetime.getDate() < this.startingDate.getDate()) {
+          months -= 1;
         }
-        return true;
+        if (months > 0) {
+          this.hideNextBtns = false;
+          return;
+        }
+        this.hideNextBtns = true;
+        return;
       }
-      return false;
+      this.hideNextBtns = false;
     },
 
     onMouseoverDate(datetime) {
@@ -370,6 +419,10 @@ export default {
       if (this.disabled) {
         return;
       }
+      // Prevent to select days of prev/next month in date-range mode
+      if (this.mode === 'date-range' && (this.isPrevMonth(date) || this.isNextMonth(date))) {
+        return;
+      }
       if (this.showTime) {
         this.$emit('change', date);
       } else {
@@ -380,14 +433,14 @@ export default {
     selectMonth(selectedMonth) {
       const tmp = this.datetime.setMonth(selectedMonth);
       this.datetime = new Date(tmp);
-      this.hidePrevBtns = this.checkPrevBtnsVisibility();
-      this.hideNextBtns = this.checkNextBtnsVisibility();
+      this.checkPrevBtnsVisibility();
+      this.checkNextBtnsVisibility();
     },
 
     selectPrevMonth() {
       const currentMonth = this.datetime.getMonth();
       if (currentMonth - 1 < 0) {
-        this.datetime = new Date(this.datetime.getFullYear() - 1,
+        this.datetime = new Date(this.datetime.getFullYear(),
           11,
           this.datetime.getDate(),
           this.datetime.getHours(),
@@ -400,7 +453,7 @@ export default {
     selectNextMonth() {
       const currentMonth = this.datetime.getMonth();
       if (currentMonth + 1 > 11) {
-        this.datetime = new Date(this.datetime.getFullYear() + 1,
+        this.datetime = new Date(this.datetime.getFullYear(),
           0,
           this.datetime.getDate(),
           this.datetime.getHours(),
@@ -490,12 +543,27 @@ export default {
         && date.getDate() === this.currentDatetime.getDate();
     },
 
+    isSameDay(d1, d2) {
+      return (d1.getFullYear() === d2.getFullYear()
+          && d1.getMonth() === d2.getMonth()
+          && d1.getDate() === d2.getDate());
+    },
+
     isSelectedDate(date) {
       if (this.mode === 'date-range') {
         if (!this.rangeDatetimes.startDatetime
-          || !this.rangeDatetimes.endDatetime) {
+          && !this.rangeDatetimes.endDatetime) {
           return false;
         }
+        if (this.rangeDatetimes.startDatetime
+          && this.isSameDay(date, this.rangeDatetimes.startDatetime)) {
+          return true;
+        }
+        if (this.rangeDatetimes.endDatetime
+          && this.isSameDay(date, this.rangeDatetimes.endDatetime)) {
+          return true;
+        }
+        return false;
       }
       return date.getFullYear() === this.datetime.getFullYear()
         && date.getMonth() === this.datetime.getMonth()
