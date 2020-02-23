@@ -1,23 +1,23 @@
 <template>
   <div id="app">
     <SpaceDatetimePicker
-      v-model="datetime" :disabled="true"></SpaceDateTimePicker>
-    <!-- <SpaceDaterangePicker :placeholder="['start date', 'end date']"
-      v-model="rangeDatetimes" :disabled="false"></SpaceDaterangePicker> -->
-    <!-- <SpaceMonthPicker></SpaceMonthPicker> -->
+      v-model="datetime"></SpaceDateTimePicker>
+    <SpaceDaterangePicker :placeholder="['start date', 'end date']"
+      v-model="rangeDatetimes" :disabled="false"></SpaceDaterangePicker>
+
   </div>
 </template>
 
 <script>
 import SpaceDatetimePicker from '@/components/SpaceDatetimePicker.vue';
-// import SpaceDaterangePicker from '@/components/SpaceDaterangePicker.vue';
+import SpaceDaterangePicker from '@/components/SpaceDaterangePicker.vue';
 // import SpaceMonthPicker from '@/components/SpaceMonthPicker.vue';
 
 export default {
   name: 'App',
   components: {
     SpaceDatetimePicker,
-    // SpaceDaterangePicker,
+    SpaceDaterangePicker,
     // SpaceMonthPicker,
   },
   data() {

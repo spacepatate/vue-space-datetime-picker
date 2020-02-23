@@ -295,6 +295,7 @@ export default {
         position: 'absolute',
         left: `${popoverPositionLeft}px`,
         top: `${popoverPositionTop}px`,
+        'z-index': 100,
       };
       e.stopPropagation();
       e.preventDefault();

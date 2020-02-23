@@ -13,13 +13,14 @@ yarn add @spacepatate/vue-space-datetime-picker
 ## Register
 
 ```
-import VueSpaceDatetimePicker from '@spacepatate/vue-space-datetime-picker';
+import { SpaceDatetimePicker, SpaceDaterangePicker }  from '@spacepatate/vue-space-datetime-picker';
 import '@spacepatate/vue-space-datetime-picker/dist/vue-space-datetime-picker.css';
 
 export default {
   name: 'App',
   components: {
-    VueSpaceDatetimePicker,
+    SpaceDatetimePicker,
+    SpaceDaterangePicker,
   },
 
 ```
