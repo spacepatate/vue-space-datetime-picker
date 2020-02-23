@@ -1,6 +1,6 @@
 {
   "name": "@spacepatate/vue-space-datetime-picker",
-  "version": "0.2.6",
+  "version": "0.2.8",
   "private": false,
   "scripts": {
     "serve": "vue-cli-service serve",

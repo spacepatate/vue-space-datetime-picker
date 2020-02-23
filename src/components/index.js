@@ -5,3 +5,5 @@ export {
   SpaceDatetimePicker,
   SpaceDaterangePicker,
 };
+
+export default SpaceDatetimePicker;

@@ -442,7 +442,6 @@ export default {
 </script>
 <style lang="scss" scoped>
   .space-daterange-picker {
-    padding: 15px;
     input.space-input {
       box-sizing: border-box;
       margin: 0;
