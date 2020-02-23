@@ -31,7 +31,7 @@ export default {
 <space-datetime-picker v-model="date"></space-datetime-picker>
 ```
 
-![minimal](cap1.png)
+![minimal](https://raw.githubusercontent.com/spacepatate/vue-space-datetime-picker/master/cap1.png)
 
 #### With time
 
@@ -39,21 +39,21 @@ export default {
 <SpaceDatetimePicker v-model="datetime" format="DD/MM/YYYY HH:mm:ss" :showTime="true"></SpaceDateTimePicker>
 ```
 
-![time select](cap3.png)
+![time select](https://raw.githubusercontent.com/spacepatate/vue-space-datetime-picker/master/cap3.png)
 
 
 #### Select months
-![month select](cap2.png)
+![month select](https://raw.githubusercontent.com/spacepatate/vue-space-datetime-picker/master/cap2.png)
 
 #### Select year
-![year select](cap4.png)
+![year select](https://raw.githubusercontent.com/spacepatate/vue-space-datetime-picker/master/cap4.png)
 
 ### Date range picker
 
 ```
 <SpaceDaterangePicker v-model="rangeDatetimes"></SpaceDaterangePicker>
 ```
-![range dates select](cap5.png)
+![range dates select](https://raw.githubusercontent.com/spacepatate/vue-space-datetime-picker/master/cap5.png)
 
 ### SpaceDatetimePicker Parameters
 
