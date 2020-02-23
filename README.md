@@ -54,6 +54,7 @@ Vue.extend({
 ```
 <SpaceDaterangePicker v-model="rangeDatetimes"></SpaceDaterangePicker>
 ```
+![range dates select](cap5.png)
 
 ### SpaceDatetimePicker Parameters
 
