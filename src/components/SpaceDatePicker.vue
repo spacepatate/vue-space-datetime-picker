@@ -1,16 +1,16 @@
 <template>
   <div class="space-date-day-picker">
     <div class="header">
-      <a class="prev-year-btn" @click="selectPrevYear"></a>
-      <a class="prev-month-btn" @click="selectPrevMonth"></a>
+      <a class="prev-year-btn" @click="selectPrevYear" v-if="!hidePrevBtns"></a>
+      <a class="prev-month-btn" @click="selectPrevMonth" v-if="!hidePrevBtns"></a>
       <div class="current-month-year-label">
         <div @click="changeToMonthPicker" class="month-label">
           {{ currentMonthLabel }}</div>
         <div @click="changeToYearPicker" class="year-label">
           {{ datetime.getFullYear() }}</div>
       </div>
-      <a class="next-month-btn" @click="selectNextMonth"></a>
-      <a class="next-year-btn" @click="selectNextYear"></a>
+      <a class="next-month-btn" @click="selectNextMonth" v-if="!hideNextBtns"></a>
+      <a class="next-year-btn" @click="selectNextYear" v-if="!hideNextBtns"></a>
       <a v-if="showHome" class="icon home" @click="gotoCurrentDdate"></a>
     </div>
     <div class="week-days">
@@ -22,20 +22,15 @@
       <div class="weeks" v-for="(week, index) of calendar" :key="`week-${index}`">
         <div class="day"
           v-for="(day, index) of week"
-          @click="clickDay(day)"
+          @click="selectDate(day)"
+          @mouseover="onMouseoverDate(day)"
           :key="`day-${index}`"
           :class="{
-            'prev-month': (day.getMonth() < datetime.getMonth()
-                && day.getFullYear() === datetime.getFullYear())
-              || (day.getFullYear() < datetime.getFullYear()),
-            'next-month': day.getMonth() > datetime.getMonth()
-              && day.getFullYear() >= datetime.getFullYear(),
-            'current-day': day.getFullYear() === currentDatetime.getFullYear()
-                          && day.getMonth() === currentDatetime.getMonth()
-                          && day.getDate() === currentDatetime.getDate(),
-            'selected': day.getFullYear() === datetime.getFullYear()
-                          && day.getMonth() === datetime.getMonth()
-                          && day.getDate() === datetime.getDate(),
+            'prev-month': isPrevMonth(day),
+            'next-month': isNextMonth(day),
+            'current-day': isCurrentDate(day),
+            'selected': isSelectedDate(day),
+            'day-in-range': isDayInRange(day),
           }">
           <span>{{ formatedDayLabel(day) }}</span>
         </div>
@@ -70,6 +65,17 @@ export default {
   },
   props: {
     value: {
+      type: Date,
+      required: false,
+      default: null,
+    },
+
+    rangeDatetimes: {
+      type: Object,
+      required: false,
+    },
+
+    startingDate: {
       type: Date,
       required: false,
       default: null,
@@ -129,6 +135,26 @@ export default {
       required: false,
       default: false,
     },
+
+    mode: {
+      type: String,
+      required: false,
+      default: null,
+    },
+
+    // only in range-picker mode
+    leftRangeDatePicker: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
+
+    // only in range-picker mode
+    rightRangeDatePicker: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
   },
   data() {
     return {
@@ -136,19 +162,42 @@ export default {
       currentWeek: [],
       weekDays: [],
       datetime: null,
+      datetimeBis: null, // other calendar datetime in date-range mode
       weekDaysOrder: [],
+      currentOverDate: null,
+      hidePrevBtns: false,
+      hideNextBtns: false,
     };
   },
 
   beforeMount() {
     if (this.value) {
       this.datetime = this.value;
+    } else if (this.startingDate) {
+      this.datetime = new Date(this.startingDate);
     } else {
       this.datetime = new Date();
     }
 
     this.init();
     this.initWeekdDays();
+    if (this.mode === 'date-range') {
+      this.$parent.$on('over-on-date', (datetime) => {
+        this.currentOverDate = datetime;
+      });
+      this.$parent.$on('month-select', ({ leftRangeDatePicker, rightRangeDatePicker, datetime }) => {
+        if (this.leftRangeDatePicker && rightRangeDatePicker) {
+          this.datetimeBis = datetime;
+        }
+        if (this.rightRangeDatePicker && leftRangeDatePicker) {
+          this.datetimeBis = datetime;
+        }
+        this.checkPrevBtnsVisibility();
+        this.checkNextBtnsVisibility();
+      });
+      this.checkNextBtnsVisibility();
+      this.checkPrevBtnsVisibility();
+    }
   },
 
   computed: {
@@ -177,6 +226,27 @@ export default {
   watch: {
     value(newValue) {
       if (newValue) {
+        // if in range-mode,
+        // the start date and end date is in same calendar,
+        // and the dates are not in this calendar
+        // then skip
+        if (this.rightRangeDatePicker
+          && this.rangeDatetimes
+          && this.rangeDatetimes.startDatetime
+          && this.rangeDatetimes.endDatetime
+          && this.rangeDatetimes.endDatetime.getTime() === newValue.getTime()
+          && newValue.getMonth() !== this.datetime.getMonth()) {
+          return;
+        }
+
+        if (this.leftRangeDatePicker
+         && this.rangeDatetimes
+         && this.rangeDatetimes.startDatetime
+         && this.rangeDatetimes.startDatetime.getTime() === newValue.getTime()
+         && newValue.getMonth() !== this.datetime.getMonth()) {
+          return;
+        }
+
         this.datetime = this.value;
       }
     },
@@ -192,6 +262,78 @@ export default {
     diffDatesInDays(date1, date2) {
       const timeDiff = date2.getTime() - date1.getTime();
       return timeDiff / (1000 * 3600 * 24);
+    },
+
+    monthDiff(dateFrom, dateTo) {
+      return dateTo.getMonth()
+        - dateFrom.getMonth()
+        + (12 * (dateTo.getFullYear() - dateFrom.getFullYear()));
+    },
+
+    // Hide prev buttons if it's 2e calendar in range-picker
+    // and the prev month is the month showed in 1e calendar
+    checkPrevBtnsVisibility() {
+      if (this.rightRangeDatePicker) {
+        const diffWithDatetime = this.monthDiff(this.startingDate, this.datetime);
+        if (diffWithDatetime > 0) {
+          this.hidePrevBtns = false;
+          return;
+        }
+        if (this.datetimeBis) {
+          // Right calendar current datetime month,
+          // check diff with left calendar currently showed month
+          // if > 2 show prev btns
+          const diffWithRangeStart = this.monthDiff(this.datetimeBis, this.datetime);
+          // (this.datetime.getFullYear() - datetime.getFullYear()) * 12;
+          // diffWithRangeStart += this.datetime.getMonth() - datetime.getMonth();
+          if (diffWithRangeStart > 1) {
+            this.hidePrevBtns = false;
+            return;
+          }
+        }
+        this.hidePrevBtns = true;
+        return;
+      }
+      this.hidePrevBtns = false;
+    },
+
+    checkNextBtnsVisibility() {
+      if (this.leftRangeDatePicker) {
+        const diffWithDatetime = this.monthDiff(this.datetime, this.startingDate);
+        if (diffWithDatetime > 0) {
+          this.hideNextBtns = false;
+          if (this.datetimeBis) {
+            const tmp = this.monthDiff(this.datetime, this.datetimeBis);
+            if (tmp <= 1) {
+              this.hideNextBtns = true;
+              return;
+            }
+          }
+          return;
+        }
+        if (this.datetimeBis) {
+          const diffWithRangeStart = this.monthDiff(this.datetime, this.datetimeBis);
+          if (diffWithRangeStart > 1) {
+            this.hideNextBtns = false;
+            return;
+          }
+        }
+        this.hideNextBtns = true;
+        return;
+      }
+      this.hideNextBtns = false;
+    },
+
+    onMouseoverDate(datetime) {
+      if (this.mode !== 'date-range') {
+        return;
+      }
+      if (this.rangeDatetimes.startDatetime
+        && this.rangeDatetimes.endDatetime) {
+        return;
+      }
+      this.$parent.$emit('over-on-date', datetime);
+      this.currentOverDate = datetime;
     },
 
     initWeekdDays() {
@@ -305,20 +447,29 @@ export default {
       return (day.getDate() < 10) ? `0${day.getDate()}` : day.getDate();
     },
 
-    clickDay(day) {
+    selectDate(date) {
       if (this.disabled) {
         return;
       }
+      // Prevent to select days of prev/next month in date-range mode
+      if (this.mode === 'date-range' && (this.isPrevMonth(date) || this.isNextMonth(date))) {
+        return;
+      }
       if (this.showTime) {
-        this.$emit('change', day);
+        this.$emit('change', date);
       } else {
-        this.$emit('select', day);
+        this.$emit('select', date);
       }
     },
 
     selectMonth(selectedMonth) {
       const tmp = this.datetime.setMonth(selectedMonth);
       this.datetime = new Date(tmp);
+      this.$parent.$emit('month-select', {
+        leftRangeDatePicker: this.leftRangeDatePicker,
+        rightRangeDatePicker: this.rightRangeDatePicker,
+        datetime: this.datetime,
+      });
     },
 
     selectPrevMonth() {
@@ -381,6 +532,78 @@ export default {
       }
       this.$emit('select', datetime);
     },
+
+    // Date in range
+    isDayInRange(date) {
+      if (this.mode !== 'date-range'
+        || (!this.rangeDatetimes.startDatetime && !this.rangeDatetimes.endDatetime)) {
+        return false;
+      }
+      // when only 1 date is defined
+      if ((this.rangeDatetimes.startDatetime && !this.rangeDatetimes.endDatetime)
+        || (!this.rangeDatetimes.startDatetime && this.rangeDatetimes.endDatetime)) {
+        const pivotDate = this.rangeDatetimes.startDatetime
+          ? this.rangeDatetimes.startDatetime : this.rangeDatetimes.endDatetime;
+        // if current date is between the pivot date and current overed date
+        if (date.getTime() < pivotDate.getTime()
+          && date.getTime() > this.currentOverDate.getTime()) {
+          return true;
+        }
+        if (date.getTime() > pivotDate.getTime()
+          && date.getTime() < this.currentOverDate.getTime()) {
+          return true;
+        }
+      }
+      if (date.getTime() > this.rangeDatetimes.startDatetime
+        && date.getTime() < this.rangeDatetimes.endDatetime) {
+        return true;
+      }
+      return false;
+    },
+
+    isPrevMonth(date) {
+      return (date.getMonth() < this.datetime.getMonth()
+        && date.getFullYear() === this.datetime.getFullYear())
+        || (date.getFullYear() < this.datetime.getFullYear());
+    },
+
+    isNextMonth(date) {
+      return date.getMonth() > this.datetime.getMonth()
+        && date.getFullYear() >= this.datetime.getFullYear();
+    },
+
+    isCurrentDate(date) {
+      return date.getFullYear() === this.currentDatetime.getFullYear()
+        && date.getMonth() === this.currentDatetime.getMonth()
+        && date.getDate() === this.currentDatetime.getDate();
+    },
+
+    isSameDay(d1, d2) {
+      return (d1.getFullYear() === d2.getFullYear()
+          && d1.getMonth() === d2.getMonth()
+          && d1.getDate() === d2.getDate());
+    },
+
+    isSelectedDate(date) {
+      if (this.mode === 'date-range') {
+        if (!this.rangeDatetimes.startDatetime
+          && !this.rangeDatetimes.endDatetime) {
+          return false;
+        }
+        if (this.rangeDatetimes.startDatetime
+          && this.isSameDay(date, this.rangeDatetimes.startDatetime)) {
+          return true;
+        }
+        if (this.rangeDatetimes.endDatetime
+          && this.isSameDay(date, this.rangeDatetimes.endDatetime)) {
+          return true;
+        }
+        return false;
+      }
+      return date.getFullYear() === this.datetime.getFullYear()
+        && date.getMonth() === this.datetime.getMonth()
+        && date.getDate() === this.datetime.getDate();
+    },
   },
 };
 </script>
@@ -405,8 +628,8 @@ export default {
   }
 
   .icon.home {
-    height: 8px;
-    width: 10px;
+    height: 6px;
+    width: 8px;
   }
   .icon.home:after,
   .icon.home:before,
@@ -416,17 +639,17 @@ export default {
   }
 
   .icon.home:after {
-    height: 2px;
-    left: 8px;
-    top: -8px;
+    height: 1px;
+    left: 6px;
+    top: -7px;
   }
 
   .icon.home:before {
-    border-bottom: 8px solid #bfdeff;
-    border-left: 8px solid transparent;
-    border-right: 8px solid transparent;
-    border-top: 12px solid transparent;
-    height: 0;
+    border-bottom: 7px solid #bfdeff;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 13px solid transparent;
+    height: 0px;
     left: -3px;
     top: -21px;
     width: 0;
@@ -455,6 +678,7 @@ export default {
     display: flex;
     flex-direction: column;
     width: 300px;
+    background: #fff;
     box-shadow: 1px 2px 6px 0px #bfbfbf;
 
     a.icon.home {
@@ -498,6 +722,10 @@ export default {
             border: 1px solid #a4d0ff;
           }
         }
+
+        &.day-in-range {
+          background: #bfdeff73;
+        }
       }
     }
 
@@ -505,6 +733,7 @@ export default {
       display: inline-flex;
       justify-content: center;
       position: relative;
+      background: white;
       border-bottom: 1px solid #ececec;
       .current-month-year-label {
         display: inline-flex;
