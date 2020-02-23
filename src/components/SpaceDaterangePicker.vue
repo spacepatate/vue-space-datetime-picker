@@ -3,7 +3,8 @@
     <div class="custom-display" ref="customDisplay">
       <slot></slot>
     </div>
-    <div class="default-inputs">
+    <div class="default-inputs"
+      ref="spaceDatetimePickerInput">
       <input type="text"
         v-if="!hasDefaultSlot"
         v-model="rangeStartDateLabel"
@@ -11,7 +12,6 @@
         @click="openPopover"
         @blur="onBlur"
         :disabled="disabled"
-        ref="spaceDatetimePickerInput"
         class="sapce-datetime-picker-input start-date space-input" />
       <span class="separator"> ~ </span>
       <input type="text"
@@ -21,17 +21,15 @@
         @click="openPopover"
         @blur="onBlur"
         :disabled="disabled"
-        ref="spaceDatetimePickerInput"
         class="sapce-datetime-picker-input end-date space-input" />
+      <span class="clear-btn" v-if="showClearBtn" @click="onClearBtnClick">
+        &times;
+      </span>
     </div>
 
-    <!-- <div class="space-datetime-popover"
-      ref="spaceDatetimePopover"
+    <div class="space-date-range-popover" ref="spaceDatetimePopover"
       :style="popoverStyle"
       v-show="displayPopover">
-
-    </div> -->
-    <div class="space-date-range-popover">
       <div class="start-date">
         <SpaceDatePicker v-if="startDatetimeMode === modeEnum.DayPick"
           v-model="rangeDatetimes.startDatetime"
@@ -45,20 +43,7 @@
           :mode="'date-range'"
           :rangeDatetimes="rangeDatetimes"
           :leftRangeDatePicker="true"
-          @modeChange="(mode) = startDatetimeMode = mode;"
           @select="onSelectStartDatetime"></SpaceDatePicker>
-        <SpaceMonthPicker
-          v-else-if="startDatetimeMode === modeEnum.MonthPick"
-          v-model="rangeDatetimes.startDatetime"
-          :locale="locale"
-          :disabled="disabled"
-          :month="month"
-          @change="(datetime) => onChange(datetime, modeEnum.DayPick)">
-        </SpaceMonthPicker>
-        <SpaceYearPicker v-else-if="startDatetimeMode === modeEnum.YearPick"
-          :disabled="disabled"
-          @change="(datetime) => onChange(datetime, modeEnum.DayPick)"
-          v-model="rangeDatetimes.startDatetime"></SpaceYearPicker>
       </div>
       <div class="end-date">
         <SpaceDatePicker v-if="endDatetimeMode === modeEnum.DayPick"
@@ -73,20 +58,7 @@
           :startingDate="defaultRangeEndDate"
           :rangeDatetimes="rangeDatetimes"
           :rightRangeDatePicker="true"
-          @modeChange="(mode) = endDatetimeMode = mode;"
           @select="onSelectEndDatetime"></SpaceDatePicker>
-        <SpaceMonthPicker
-          v-else-if="endDatetimeMode === modeEnum.MonthPick"
-          v-model="rangeDatetimes.endDatetime"
-          :locale="locale"
-          :disabled="disabled"
-          :month="month"
-          @change="(datetime) => onChange(datetime, modeEnum.DayPick)">
-        </SpaceMonthPicker>
-        <SpaceYearPicker v-else-if="endDatetimeMode === modeEnum.YearPick"
-          :disabled="disabled"
-          @change="(datetime) => onChange(datetime, modeEnum.DayPick)"
-          v-model="rangeDatetimes.endDatetime"></SpaceYearPicker>
       </div>
     </div>
   </div>
@@ -102,14 +74,10 @@ import {
 } from './helper';
 
 import SpaceDatePicker from './SpaceDatePicker.vue';
-import SpaceMonthPicker from './SpaceMonthPicker.vue';
-import SpaceYearPicker from './SpaceYearPicker.vue';
 
 export default {
   components: {
     SpaceDatePicker,
-    SpaceMonthPicker,
-    SpaceYearPicker,
   },
 
   data() {
@@ -117,7 +85,7 @@ export default {
       startDatetimeMode: ModeEnum.DayPick,
       endDatetimeMode: ModeEnum.DayPick,
       modeEnum: ModeEnum,
-      label: null,
+      showClearBtn: false,
       rangeStartDateLabel: null,
       rangeEndDateLabel: null,
       displayPopover: false,
@@ -131,7 +99,7 @@ export default {
 
   props: {
     value: {
-      type: Date,
+      type: Array,
       required: false,
       default: null,
     },
@@ -240,15 +208,25 @@ export default {
   },
 
   beforeMount() {
-    // if (this.value && isValidDate(this.value)) {
-    //   this.datetime = this.value;
-    // }
+    if (this.value
+      && isValidDate(this.value[0])
+      && isValidDate(this.value[1])) {
+      this.rangeDatetimes = {
+        startDatetime: this.value[0],
+        endDatetime: this.value[1],
+      };
+    }
   },
 
   watch: {
     rangeDatetimes: {
       deep: true,
       handler(value) {
+        this.showClearBtn = true;
+        if (!value.startDatetime
+          && !value.endDatetime) {
+          this.showClearBtn = false;
+        }
         if (value.startDatetime) {
           this.rangeStartDateLabel = this.formatDatetime(value.startDatetime);
         } else {
@@ -308,6 +286,14 @@ export default {
         && this.isSameDay(this.rangeDatetimes.endDatetime, datetime);
     },
 
+    checkPopoverVisibility() {
+      if (this.rangeDatetimes.startDatetime
+        && this.rangeDatetimes.endDatetime) {
+        this.displayPopover = false;
+        this.$emit('input', [this.rangeDatetimes.startDatetime, this.rangeDatetimes.endDatetime]);
+      }
+    },
+
     onSelectStartDatetime(datetime) {
       if (this.isSameRangeStartDate(datetime)) {
         this.rangeDatetimes.startDatetime = null;
@@ -323,9 +309,11 @@ export default {
           return;
         }
         this.rangeDatetimes.endDatetime = datetime;
+        this.checkPopoverVisibility();
         return;
       }
       this.rangeDatetimes.startDatetime = datetime;
+      this.checkPopoverVisibility();
     },
 
     onSelectEndDatetime(datetime) {
@@ -340,13 +328,16 @@ export default {
       }
       if (!this.rangeDatetimes.startDatetime) {
         this.rangeDatetimes.startDatetime = datetime;
+        this.checkPopoverVisibility();
         return;
       }
       if (this.rangeDatetimes.startDatetime.getTime() > datetime.getTime()) {
         this.rangeDatetimes.startDatetime = datetime;
+        this.checkPopoverVisibility();
         return;
       }
       this.rangeDatetimes.endDatetime = datetime;
+      this.checkPopoverVisibility();
     },
 
     onBlur() {
@@ -392,7 +383,7 @@ export default {
         this.rangeDatetimes.startDatetime = null;
         this.rangeDatetimes.endDatetime = null;
       }
-      this.$emit('input', this.rangeDatetimes);
+      this.$emit('input', [this.rangeDatetimes.startDatetime, this.rangeDatetimes.endDatetime]);
     },
 
     onClickHandler(e) {
@@ -408,8 +399,10 @@ export default {
           || e.clientY > zoneY) {
         this.displayPopover = false;
         document.removeEventListener('click', this.onClickHandler);
-        if (isValidDate(this.datetime) && !this.disabled) {
-          this.$emit('input', this.datetime);
+        if (isValidDate(this.rangeDatetimes.startDatetime)
+          && isValidDate(this.rangeDatetimes.endDatetime)
+          && !this.disabled) {
+          this.$emit('input', [this.rangeDatetimes.startDatetime, this.rangeDatetimes.endDatetime]);
         }
         this.mode = ModeEnum.DayPick;
       }
@@ -433,6 +426,14 @@ export default {
       e.stopPropagation();
       e.preventDefault();
       document.addEventListener('click', this.onClickHandler);
+    },
+
+    onClearBtnClick() {
+      this.displayPopover = false;
+      this.rangeDatetimes = {
+        startDatetime: null,
+        endDatetime: null,
+      };
     },
   },
 };
@@ -463,6 +464,7 @@ export default {
       &.end-date {
         border: 0;
         flex: 1 1 auto;
+        outline: 0;
       }
     }
 
@@ -471,6 +473,20 @@ export default {
       border-radius: 4px;
       max-width: 600px;
       display: flex;
+      position: relative;
+
+      .clear-btn {
+        position: absolute;
+        cursor: pointer;
+        padding: 3px;
+        background: #ececec;
+        border-radius: 25px;
+        width: 16px;
+        height: 16px;
+        line-height: 16px;
+        top: 5px;
+        right: 5px;
+      }
     }
 
     .separator {

@@ -162,6 +162,7 @@ export default {
       currentWeek: [],
       weekDays: [],
       datetime: null,
+      datetimeBis: null, // other calendar datetime in date-range mode
       weekDaysOrder: [],
       currentOverDate: null,
       hidePrevBtns: false,
@@ -183,6 +184,16 @@ export default {
     if (this.mode === 'date-range') {
       this.$parent.$on('over-on-date', (datetime) => {
         this.currentOverDate = datetime;
+      });
+      this.$parent.$on('month-select', ({ leftRangeDatePicker, rightRangeDatePicker, datetime }) => {
+        if (this.leftRangeDatePicker && rightRangeDatePicker) {
+          this.datetimeBis = datetime;
+        }
+        if (this.rightRangeDatePicker && leftRangeDatePicker) {
+          this.datetimeBis = datetime;
+        }
+        this.checkPrevBtnsVisibility();
+        this.checkNextBtnsVisibility();
       });
       this.checkNextBtnsVisibility();
       this.checkPrevBtnsVisibility();
@@ -253,21 +264,32 @@ export default {
       return timeDiff / (1000 * 3600 * 24);
     },
 
+    monthDiff(dateFrom, dateTo) {
+      return dateTo.getMonth()
+        - dateFrom.getMonth()
+        + (12 * (dateTo.getFullYear() - dateFrom.getFullYear()));
+    },
+
     // Hide prev buttons if it's 2e calendar in range-picker
     // and the prev month is the month showed in 1e calendar
     checkPrevBtnsVisibility() {
       if (this.rightRangeDatePicker) {
-        // Months between years.
-        let months = (this.startingDate.getFullYear() - this.datetime.getFullYear()) * 12;
-        // Months between... months.
-        months += this.datetime.getMonth() - this.startingDate.getMonth();
-        // Subtract one month if b's date is less that a's.
-        if (this.startingDate.getDate() < this.datetime.getDate()) {
-          months -= 1;
-        }
-        if (months > 0) {
+        const diffWithDatetime = this.monthDiff(this.startingDate, this.datetime);
+        if (diffWithDatetime > 0) {
           this.hidePrevBtns = false;
           return;
+        }
+        if (this.datetimeBis) {
+          // Right calendar current datetime month,
+          // check diff with left calendar currently showed month
+          // if > 2 show prev btns
+          const diffWithRangeStart = this.monthDiff(this.datetimeBis, this.datetime);
+          // (this.datetime.getFullYear() - datetime.getFullYear()) * 12;
+          // diffWithRangeStart += this.datetime.getMonth() - datetime.getMonth();
+          if (diffWithRangeStart > 1) {
+            this.hidePrevBtns = false;
+            return;
+          }
         }
         this.hidePrevBtns = true;
         return;
@@ -277,17 +299,24 @@ export default {
 
     checkNextBtnsVisibility() {
       if (this.leftRangeDatePicker) {
-        // Months between years.
-        let months = (this.startingDate.getFullYear() - this.datetime.getFullYear()) * 12;
-        // Months between... months.
-        months += this.startingDate.getMonth() - this.datetime.getMonth();
-        // Subtract one month if b's date is less that a's.
-        if (this.datetime.getDate() < this.startingDate.getDate()) {
-          months -= 1;
-        }
-        if (months > 0) {
+        const diffWithDatetime = this.monthDiff(this.datetime, this.startingDate);
+        if (diffWithDatetime > 0) {
           this.hideNextBtns = false;
+          if (this.datetimeBis) {
+            const tmp = this.monthDiff(this.datetime, this.datetimeBis);
+            if (tmp <= 1) {
+              this.hideNextBtns = true;
+              return;
+            }
+          }
           return;
+        }
+        if (this.datetimeBis) {
+          const diffWithRangeStart = this.monthDiff(this.datetime, this.datetimeBis);
+          if (diffWithRangeStart > 1) {
+            this.hideNextBtns = false;
+            return;
+          }
         }
         this.hideNextBtns = true;
         return;
@@ -433,8 +462,11 @@ export default {
     selectMonth(selectedMonth) {
       const tmp = this.datetime.setMonth(selectedMonth);
       this.datetime = new Date(tmp);
-      this.checkPrevBtnsVisibility();
-      this.checkNextBtnsVisibility();
+      this.$parent.$emit('month-select', {
+        leftRangeDatePicker: this.leftRangeDatePicker,
+        rightRangeDatePicker: this.rightRangeDatePicker,
+        datetime: this.datetime,
+      });
     },
 
     selectPrevMonth() {
