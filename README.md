@@ -26,25 +26,36 @@ Vue.extend({
 ```
 ## Usage
 
-### Minimal
+### Date picker
 
 ```
 <space-datetime-picker v-model="date"></space-datetime-picker>
 ```
 
-![minimal](./cap1.png)
+![minimal](cap1.png)
 
 #### With time
-![time select](./cap3.png)
+
+```
+<SpaceDatetimePicker v-model="datetime" format="DD/MM/YYYY HH:mm:ss" :showTime="true"></SpaceDateTimePicker>
+```
+
+![time select](cap3.png)
+
 
 #### Select months
-![month select](./cap2.png)
+![month select](cap2.png)
 
 #### Select year
-![year select](./cap4.png)
+![year select](cap4.png)
 
+### Date range picker
 
-### Parameters
+```
+<SpaceDaterangePicker v-model="rangeDatetimes"></SpaceDaterangePicker>
+```
+
+### SpaceDatetimePicker Parameters
 
 Parameter | Type | Default | Description
 --------- | ---- | ------- | -----------
@@ -56,6 +67,18 @@ showTime | `Boolean` | `false` | show time input in date picker
 hour12 | `Boolean` | `false` | show time in 12 hours format
 weekday | `String` | `narrow` | display week day in long | short | narrow
 showHome | `Boolean` | `false` | home icon button allow to return back to current datetime
+disabled | `Boolean` | `false` | disabled all inputs
+stardingDay | `Number` | `1` | define the first day of week, 0 is sunday, 1 for monday...
+
+### SpaceDaterangePicker parameters
+
+Parameter | Type | Default | Description
+--------- | ---- | ------- | -----------
+v-model (*required*) | `Date` Array | - | Array of Date object
+placeholder | `String` Array | - | Array of strings, ex: ['start date', 'end date']
+format | `String` | `''` | format to display in default input field, the default display format is YYYY-MM-DD
+locale | `String` | `undefined` | BCP47 locales, ex: fr-FR, en-BR, en-US...
+weekday | `String` | `narrow` | display week day in long | short | narrow
 disabled | `Boolean` | `false` | disabled all inputs
 stardingDay | `Number` | `1` | define the first day of week, 0 is sunday, 1 for monday...
 

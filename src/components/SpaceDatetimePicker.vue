@@ -3,15 +3,21 @@
     <div class="custom-display" ref="customDisplay">
       <slot></slot>
     </div>
-    <input type="text"
-      v-if="!hasDefaultSlot"
-      v-model="label"
-      :placeholder="placeholder"
-      @click="openPopover"
-      @blur="onBlur"
-      :disabled="disabled"
-      ref="spaceDatetimePickerInput"
-      class="sapce-datetime-picker-input space-input" />
+    <div class="default-input">
+      <input type="text"
+        v-if="!hasDefaultSlot"
+        v-model="label"
+        :placeholder="placeholder"
+        @click="openPopover"
+        @blur="onBlur"
+        :disabled="disabled"
+        ref="spaceDatetimePickerInput"
+        class="sapce-datetime-picker-input space-input" />
+      <span class="clear-btn" v-if="showClearBtn && !disabled" @click="onClearBtnClick">
+        &times;
+      </span>
+    </div>
+
     <div class="space-datetime-popover"
       ref="spaceDatetimePopover"
       :style="popoverStyle"
@@ -71,6 +77,7 @@ export default {
       label: null,
       displayPopover: false,
       popoverStyle: null,
+      showClearBtn: false,
     };
   },
 
@@ -182,15 +189,25 @@ export default {
   },
 
   watch: {
-    datetime() {
-      let tmp = this.format;
-      for (let i = 0; i < parseFuncs.length; i += 1) {
-        const parseFunc = parseFuncs[i];
-        if (this.format.includes(parseFunc.key)) {
-          tmp = parseFunc.handler(this.datetime, tmp);
+    datetime(value) {
+      if (value) {
+        let tmp = this.format;
+        for (let i = 0; i < parseFuncs.length; i += 1) {
+          const parseFunc = parseFuncs[i];
+          if (this.format.includes(parseFunc.key)) {
+            tmp = parseFunc.handler(this.datetime, tmp);
+          }
         }
+        this.label = tmp;
+        if (this.label) {
+          this.showClearBtn = true;
+        } else {
+          this.showClearBtn = false;
+        }
+      } else {
+        this.showClearBtn = false;
+        this.label = null;
       }
-      this.label = tmp;
     },
   },
 
@@ -216,6 +233,13 @@ export default {
 
     onModeChange(mode) {
       this.mode = mode;
+    },
+
+    onClearBtnClick() {
+      this.displayPopover = false;
+      this.label = null;
+      this.datetime = null;
+      this.$emit('input', null);
     },
 
     onBlur() {
@@ -279,8 +303,28 @@ export default {
   },
 };
 </script>
-<style lang="scss">
+<style lang="scss" scoped>
+  .default-input {
+    max-width: 300px;
+    display: flex;
+    position: relative;
+    outline: 0;
+
+    .clear-btn {
+      position: absolute;
+      cursor: pointer;
+      padding: 3px;
+      background: #ececec;
+      border-radius: 25px;
+      width: 16px;
+      height: 16px;
+      line-height: 16px;
+      top: 5px;
+      right: 5px;
+    }
+  }
   input.space-input {
+    outline: 0;
     box-sizing: border-box;
     margin: 0;
     padding: 0;

@@ -325,6 +325,9 @@ export default {
     },
 
     onMouseoverDate(datetime) {
+      if (this.mode !== 'date-range') {
+        return;
+      }
       if (this.rangeDatetimes.startDatetime
         && this.rangeDatetimes.endDatetime) {
         return;

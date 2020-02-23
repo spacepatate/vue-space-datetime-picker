@@ -8,7 +8,7 @@
       <input type="text"
         v-if="!hasDefaultSlot"
         v-model="rangeStartDateLabel"
-        :placeholder="placeholder"
+        :placeholder="placeholder && placeholder.length > 0 ? placeholder[0] : null"
         @click="openPopover"
         @blur="onBlur"
         :disabled="disabled"
@@ -17,12 +17,12 @@
       <input type="text"
         v-if="!hasDefaultSlot"
         v-model="rangeEndDateLabel"
-        :placeholder="placeholder"
+        :placeholder="placeholder && placeholder.length > 0 ? placeholder[1] : null"
         @click="openPopover"
         @blur="onBlur"
         :disabled="disabled"
         class="sapce-datetime-picker-input end-date space-input" />
-      <span class="clear-btn" v-if="showClearBtn" @click="onClearBtnClick">
+      <span class="clear-btn" v-if="showClearBtn && !disabled" @click="onClearBtnClick">
         &times;
       </span>
     </div>
@@ -105,7 +105,7 @@ export default {
     },
 
     placeholder: {
-      type: String,
+      type: Array,
       required: false,
       default: null,
     },
@@ -434,12 +434,12 @@ export default {
         startDatetime: null,
         endDatetime: null,
       };
+      this.$emit('input', null);
     },
   },
 };
 </script>
-<style lang="scss">
-
+<style lang="scss" scoped>
   .space-daterange-picker {
     padding: 15px;
     input.space-input {
